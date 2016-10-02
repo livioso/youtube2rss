@@ -67,7 +67,7 @@ def download(username):
 
     options = {
         'daterange': within_last_day,
-        'format': '137',                # 137 => video/mp4. Figure out with youtube-dl -F.
+        'format': '22',                 # 22 => video/mp4. Figure out with youtube-dl -F.
         'ignoreerrors': True,           # can happen when format is not available, then just skip.
         'writeinfojson': True,          # write the video description to .info.json.
         'nooverwrites': True,           # prevent overwriting files.
