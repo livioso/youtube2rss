@@ -92,15 +92,18 @@ def build_rss_episode_item(video):
     description = et.SubElement(item, 'description')
     description.text = metadata.get('description')
 
-    enclosure = et.SubElement(item, 'enclosure')
-    enclosure.set('type', 'video/mp4')
-    enclosure.set('length', str(metadata.get('filesize')))
-    enclosure.set('url', "http://livio.li/podcasts/yt/{filename}".format(
+    enclosure_url = "{base_url}{filename}".format(
+        base_url='http://livio.li/podcasts/yt/',
         filename=video.get("filename_video_url")
-    ))
+    )
+
+    enclosure = et.SubElement(item, 'enclosure')
+    enclosure.set('url', enclosure_url)
+    enclosure.set('length', str(metadata.get('filesize')))
+    enclosure.set('type', 'video/mp4')
 
     pubDate = et.SubElement(item, 'pubDate')
-    pubDate.text = metadata.get('upload_date')
+    pubDate.text = 'Wed, 03 Nov 2015 19:18:00 GMT'  # FIXME
 
     return item  # minimal item tag
 
