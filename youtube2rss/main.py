@@ -133,7 +133,7 @@ def build_rss_feed():
 
     # dump the tree as feed.xml
     tree = et.ElementTree(root)
-    tree.write('feed.xml', xml_declaration=True, encoding='utf-8')
+    tree.write('feed.rss', xml_declaration=True, encoding='utf-8')
 
 
 def cleanup():
