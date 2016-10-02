@@ -1,4 +1,5 @@
 #!/usr/bin/env python3.4
+from xml.etree import ElementTree as et
 import youtube_dl
 import json
 import urllib
@@ -57,6 +58,7 @@ def progress_hook(progress):
         }
 
         downloaded_videos.append(video)
+        build_rss_feed()
 
 
 def download(username):
@@ -76,8 +78,71 @@ def download(username):
         ydl.download(['ytuser:{username}'.format(username=username)])
 
 
+def build_rss_episode_item(video):
+    metadata = video.get('metadata')
+
+    # build item with the minimal set of tags
+    item = et.Element('item')
+    title = et.SubElement(item, 'title')
+    title.text = metadata.get('full_title')
+
+    link = et.SubElement(item, 'link')
+    link.text = metadata.get('webpage_url')
+
+    description = et.SubElement(item, 'description')
+    description.text = metadata.get('description')
+
+    enclosure = et.SubElement(item, 'enclosure')
+    enclosure.set('type', 'video/mp4')
+    enclosure.set('length', str(metadata.get('filesize')))
+    enclosure.set('url', "http://livio.li/podcasts/yt/{filename}".format(
+        filename=video.get("filename_video_url")
+    ))
+
+    pubDate = et.SubElement(item, 'pubDate')
+    pubDate.text = metadata.get('upload_date')
+
+    return item  # minimal item tag
+
+
+def build_rss_feed():
+    root = et.Element('rss')
+    root.set('version', "2.0")
+    channel = et.SubElement(root, 'channel')
+
+    # add minimal set of elements to channel
+    title = et.SubElement(channel, 'title')
+    title.text = 'Livioso'
+
+    itunes_image = et.SubElement(channel, 'itunes:image')
+    itunes_image.set('href', "https://yt3.ggpht.com/-x2NNN2y49G0/AAAAAAAAAAI/AAAAAAAAAAA/RhwVaxMvqW8/s100-c-k-no-mo-rj-c0xffffff/photo.jpg")
+
+    itunes_author = et.SubElement(channel, 'itunes:author')
+    itunes_author.text = 'Livioso'
+
+    link = et.SubElement(channel, 'link')
+    link.text = 'http://livio.li/podcasts/'
+
+    description = et.SubElement(channel, 'description')
+    description.text = 'Livioso Podcasts'
+
+    # append episodes (aka 'items')
+    for video in downloaded_videos:
+        item = build_rss_episode_item(video)
+        channel.append(item)
+
+    # dump the tree as feed.xml
+    tree = et.ElementTree(root)
+    tree.write('feed.xml', xml_declaration=True, encoding='utf-8')
+
+
+def cleanup():
+    print("Clean up unused, old files")
+
+
 def main():
     download(username="caseyneistat")
+    # build_rss_feed
 
 
 main()
