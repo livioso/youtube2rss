@@ -8,25 +8,25 @@ import os
 downloaded_videos = []
 
 
-def get_video_metadata(filename):
-    video_info_path = "{filename}.info.json".format(filename=filename)
-
-    with open(video_info_path) as json_data:
+# get the meta data we care about
+# there is much more (different formats)
+# but we do not need it anyways.
+def get_metadata(filename):
+    with open(filename) as json_data:
         video_info = json.load(json_data)
 
         metadata = {
-            "description": video_info.get("description"),
-            "playlist_title": video_info.get("playlist_title"),
-            "title": video_info.get("title"),
-            "webpage_url": video_info.get("webpage_url"),
-            "thumbnail": video_info.get("thumbnail"),
-            "uploader_url": video_info.get("uploader_url"),
-            "upload_date": video_info.get("upload_date"),
-            "id": video_info.get("id"),
-            "full_title": video_info.get("full_title"),
-            "full_filename": video_info.get("_filename"),
-            "filesize": video_info.get("filesize"),
-            "url": video_info.get("url"),
+            "id": video_info.get("id"),                                # id of the video
+            "description": video_info.get("description"),              # video description
+            "title": video_info.get("title"),                          # short title of video
+            "full_title": video_info.get("full_title"),                # full title of the video
+            "thumbnail": video_info.get("thumbnail"),                  # thumbnail of video
+            "upload_date": video_info.get("upload_date", '20160101'),  # date in YYYYDDMM
+            "playlist_title": video_info.get("playlist_title"),        # name of the play list
+            "webpage_url": video_info.get("webpage_url"),              # link to Youtube video
+            "uploader_url": video_info.get("uploader_url"),            # link to profile
+            "filesize": video_info.get("filesize", 0),                 # file size in bytes
+            "_url": video_info.get("url"),                             # points to mp4/video (FIXME)
         }
 
         return metadata
@@ -42,36 +42,42 @@ def get_video_metadata(filename):
 # }
 def progress_hook(progress):
     if progress.get('status') == 'finished':
-        full_filepath = progress.get('filename')
-        filename, file_extension = os.path.splitext(full_filepath)
+        filename_video = progress.get('filename')
+        base_filename = os.path.splitext(filename_video)[0]
+
+        filename_metadata = "{filename}{extension}".format(
+            filename=base_filename,
+            extension=".info.json")
 
         video = {
-            'metadata': get_video_metadata(filename),
-            'full_filenpath': full_filepath,
-            'full_filepath_url': urllib.parse.quote_plus(full_filepath),
-            '_filename': filename,
-            '_file_extension': file_extension,
-            'bytes': progress.get('total_bytes'),
+            'filename_video': filename_video,
+            'filename_video_url': urllib.parse.quote_plus(filename_video),
+            'filename_metadata': filename_metadata,
+            'metadata': get_metadata(filename_metadata),
         }
 
-        print(video.get("metadata"))
         downloaded_videos.append(video)
 
 
-# this should be fine as we run the cron job more frequently anyway
-within_last_day = youtube_dl.utils.DateRange(start='today-1day', end='today')
+def download(username):
+    # this should be fine as we run the cron job more frequently anyway
+    within_last_day = youtube_dl.utils.DateRange(start='today-1day', end='today')
 
-options = {
-    'daterange': within_last_day,
-    'format': '137',                # 137 => video/mp4. Figure out with youtube-dl -F.
-    'ignoreerrors': True,           # can happen when format is not available, then just skip.
-    'writeinfojson': True,          # write the video description to .info.json.
-    'nooverwrites': True,           # prevent overwriting files.
-    'progress_hooks': [progress_hook]
-}
+    options = {
+        'daterange': within_last_day,
+        'format': '137',                # 137 => video/mp4. Figure out with youtube-dl -F.
+        'ignoreerrors': True,           # can happen when format is not available, then just skip.
+        'writeinfojson': True,          # write the video description to .info.json.
+        'nooverwrites': True,           # prevent overwriting files.
+        'progress_hooks': [progress_hook]
+    }
 
-with youtube_dl.YoutubeDL(options) as ydl:
-    ydl.download(['ytuser:caseyneistat'])
+    with youtube_dl.YoutubeDL(options) as ydl:
+        ydl.download(['ytuser:{username}'.format(username=username)])
 
 
+def main():
+    download(username="caseyneistat")
 
+
+main()
