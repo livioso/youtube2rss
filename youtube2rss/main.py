@@ -213,8 +213,8 @@ def main():
         }
     }
 
-    quickbaby = {
-        "username": "QuickBabyTV",
+    quickybaby = {
+        "username": "QuickyBabyTV",
         "preferred_video_format": "22",
         "download_videos_start_date": "today-2day",
         "download_videos_end_date": "today",
@@ -223,7 +223,7 @@ def main():
             "title": "Livioso - QB",
             "image": "goo.gl/VkvYQN",                              # FIXME
             "description": "QB",
-            "link": "https://www.youtube.com/user/QuickBabyTV",
+            "link": "https://www.youtube.com/user/QuickyBabyTV",
             "author": "😎",
             "base_url": "http://livio.li/podcasts/yt/",
             "feed_output_file_name": "feed-qb.rss"
@@ -234,10 +234,10 @@ def main():
     # download & build feed
     # for these channels
     channels_to_download = [
+        quickybaby,
         caseyneistat,
         johnoliver,
         chromedevelopers,
-        quickbaby,
     ]
 
     # TODO: Load download_videos before
