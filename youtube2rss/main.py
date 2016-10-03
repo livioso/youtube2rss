@@ -1,17 +1,17 @@
 #!/usr/bin/env python3.4
 from xml.etree import ElementTree as et
 import youtube_dl
-import json
+import datetime
 import urllib
+import json
 import os
 
 # keep track of the downloaded videos here
 downloaded_videos = []
 
 
-# get the meta data we care about
-# there is much more (different formats)
-# but we do not need it anyways.
+# get the meta data we care about there is much more
+# (different formats etc.) but we do not need it anyways.
 def get_metadata(filename):
     with open(filename) as json_data:
         video_info = json.load(json_data)
@@ -33,7 +33,8 @@ def get_metadata(filename):
         return metadata
 
 
-# progress looks like this:
+# progress hook that gets called during download.
+# => progress looks like this:
 #
 # {
 #   '_total_bytes_str': '391.30MiB',
@@ -41,11 +42,12 @@ def get_metadata(filename):
 #   'status': 'finished',
 #   'total_bytes': 410304772
 # }
-def progress_hook(progress):
+def progress_hook(progress, channel):
     if progress.get('status') == 'finished':
         filename_video = progress.get('filename')
         base_filename = os.path.splitext(filename_video)[0]
 
+        # the metadata file is stored with the extension .info.json
         filename_metadata = "{filename}{extension}".format(
             filename=base_filename,
             extension=".info.json")
@@ -55,36 +57,44 @@ def progress_hook(progress):
             'filename_video_url': urllib.parse.quote_plus(filename_video),
             'filename_metadata': filename_metadata,
             'metadata': get_metadata(filename_metadata),
+            'channel': channel,
         }
 
         downloaded_videos.append(video)
-        build_rss_feed()
+        build_rss_feed(channel)  # FIXME just for debugging
 
 
-def download(username):
-    # this should be fine as we run the cron job more frequently anyway
-    within_last_day = youtube_dl.utils.DateRange(start='today-1day', end='today')
+def download(channel):
+    # figure this out with youtube-dl -F
+    video_format = channel.get("preferred_video_format")
+
+    within_range = youtube_dl.utils.DateRange(
+        start=channel.get("download_videos_start_date"),
+        end=channel.get("download_videos_end_date")
+    )
 
     options = {
-        'daterange': within_last_day,
-        'format': '22',                 # 22 => video/mp4. Figure out with youtube-dl -F.
+        'format': video_format,
+        'daterange': within_range,
         'ignoreerrors': True,           # can happen when format is not available, then just skip.
         'writeinfojson': True,          # write the video description to .info.json.
         'nooverwrites': True,           # prevent overwriting files.
-        'progress_hooks': [progress_hook]
+        'progress_hooks': [lambda progress: progress_hook(progress, channel)]
     }
 
     with youtube_dl.YoutubeDL(options) as ydl:
-        ydl.download(['ytuser:{username}'.format(username=username)])
+        ydl.download(['ytuser:{username}'.format(
+            username=channel.get("username")
+        )])
 
 
-def build_rss_episode_item(video):
+def build_rss_episode_item(video, channel):
     metadata = video.get('metadata')
 
     # build item with the minimal set of tags
     item = et.Element('item')
     title = et.SubElement(item, 'title')
-    title.text = metadata.get('full_title')
+    title.text = metadata.get('title')
 
     link = et.SubElement(item, 'link')
     link.text = metadata.get('webpage_url')
@@ -93,7 +103,7 @@ def build_rss_episode_item(video):
     description.text = metadata.get('description')
 
     enclosure_url = "{base_url}{filename}".format(
-        base_url='http://livio.li/podcasts/yt/',
+        base_url=channel.get("rss").get("base_url"),
         filename=video.get("filename_video_url")
     )
 
@@ -102,50 +112,85 @@ def build_rss_episode_item(video):
     enclosure.set('length', str(metadata.get('filesize')))
     enclosure.set('type', 'video/mp4')
 
+    # pubDate is a bit clowny. The expected format is: Wed, 03 Nov 2015 19:18:00 GMT
+    upload_date = datetime.datetime.strptime(metadata.get("upload_date"), "%Y%m%d").date()
+    upload_date_formated = upload_date.strftime("%a, %d %b %Y 12:00:00 GMT")
+
     pubDate = et.SubElement(item, 'pubDate')
-    pubDate.text = 'Wed, 03 Nov 2015 19:18:00 GMT'  # FIXME
+    pubDate.text = upload_date_formated
 
     return item  # minimal item tag
 
 
-def build_rss_feed():
+def build_rss_feed(channel_info):
     root = et.Element('rss')
     root.set('version', "2.0")
     channel = et.SubElement(root, 'channel')
 
+    rss = channel_info.get("rss")
+
     # add minimal set of elements to channel
     title = et.SubElement(channel, 'title')
-    title.text = 'Livioso'
+    title.text = rss.get("title")
 
     itunes_image = et.SubElement(channel, 'itunes:image')
-    itunes_image.set('href', "https://yt3.ggpht.com/-x2NNN2y49G0/AAAAAAAAAAI/AAAAAAAAAAA/RhwVaxMvqW8/s100-c-k-no-mo-rj-c0xffffff/photo.jpg")
+    itunes_image.set('href', rss.get("image"))
 
     itunes_author = et.SubElement(channel, 'itunes:author')
-    itunes_author.text = 'Livioso'
+    itunes_author.text = rss.get("author")
 
     link = et.SubElement(channel, 'link')
-    link.text = 'http://livio.li/podcasts/'
+    link.text = rss.get("link")
 
     description = et.SubElement(channel, 'description')
-    description.text = 'Livioso Podcasts'
+    description.text = rss.get("description")
 
     # append episodes (aka 'items')
     for video in downloaded_videos:
-        item = build_rss_episode_item(video)
+        item = build_rss_episode_item(video, channel_info)
         channel.append(item)
 
     # dump the tree as feed.xml
     tree = et.ElementTree(root)
-    tree.write('feed.rss', xml_declaration=True, encoding='utf-8')
+    tree.write(rss.get("feed_output_file_name"),
+               xml_declaration=True, encoding='utf-8')
 
 
-def cleanup():
-    print("Clean up unused, old files")
+def cleanup(channel):
+    print("Clean up unused, old files")  # TODO
 
 
 def main():
-    download(username="caseyneistat")
-    # build_rss_feed
 
+    caseyneistat = {
+        "username": "caseyneistat",
+        "preferred_video_format": "22",                             # video/mp4 => see youtube-dl -F.
+        "download_videos_start_date": "today-1day",                 # should be fine, since yesterday.
+        "download_videos_end_date": "today",                        # cron job runs frequently anyway.
+        "keep_episodes_count": 4,                                   # only keep latest 4 (preserve space)
+        "rss": {                                                    # mostly irrelevant, just required
+            "title": "Livioso",                                     # for a minimal viable set of tags.
+            "image": "goo.gl/VkvYQN",                               # use as podcast image
+            "description": "Casey's Vlogs",                         # ... whatever (but required)
+            "link": "https://www.youtube.com/user/caseyneistat",    # ... whatever (^)
+            "author": "😎",                                         # ... whatever (^)
+            "base_url": "http://livio.li/podcasts/yt/",             # where the files will accessible
+            "feed_output_file_name": "feed-casey.rss"               # is under base_url
+        }
+    }
+
+    # TODO: move this to a JSON
+    # download & build feed
+    # for these channels
+    channels_to_download = [
+        caseyneistat,
+    ]
+
+    # TODO: Load download_videos before
+    # downloading & dump it to JSON after.
+    for channel in channels_to_download:
+        download(channel)
+        build_rss_feed(channel)
+        cleanup(channel)
 
 main()
