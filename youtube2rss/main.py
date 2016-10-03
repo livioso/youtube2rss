@@ -169,8 +169,8 @@ def main():
         "download_videos_end_date": "today",                        # cron job runs frequently anyway.
         "keep_episodes_count": 4,                                   # only keep latest 4 (preserve space)
         "rss": {                                                    # mostly irrelevant, just required
-            "title": "Livioso",                                     # for a minimal viable set of tags.
-            "image": "goo.gl/VkvYQN",                               # use as podcast image
+            "title": "Livioso - Casey Neistat",                     # for a minimal viable set of tags.
+            "image": "goo.gl/VkvYQN",                               # FIXME used as podcast image
             "description": "Casey's Vlogs",                         # ... whatever (but required)
             "link": "https://www.youtube.com/user/caseyneistat",    # ... whatever (^)
             "author": "😎",                                         # ... whatever (^)
@@ -179,11 +179,65 @@ def main():
         }
     }
 
+    johnoliver = {
+        "username": "LastWeekTonight",
+        "preferred_video_format": "22",
+        "download_videos_start_date": "today-2day",
+        "download_videos_end_date": "today",
+        "keep_episodes_count": 4,
+        "rss": {
+            "title": "Livioso - Last Week Tonight",
+            "image": "goo.gl/VkvYQN",                              # FIXME
+            "description": "Last Week Tonight",
+            "link": "https://www.youtube.com/user/LastWeekTonight",
+            "author": "😎",
+            "base_url": "http://livio.li/podcasts/yt/",
+            "feed_output_file_name": "feed-lwt.rss"
+        }
+    }
+
+    chromedevelopers = {
+        "username": "ChromeDevelopers",
+        "preferred_video_format": "22",
+        "download_videos_start_date": "today-2day",
+        "download_videos_end_date": "today",
+        "keep_episodes_count": 4,
+        "rss": {
+            "title": "Livioso - Chrome Developers",
+            "image": "goo.gl/VkvYQN",                              # FIXME
+            "description": "Chrome Developers",
+            "link": "https://www.youtube.com/user/ChromeDevelopers",
+            "author": "😎",
+            "base_url": "http://livio.li/podcasts/yt/",
+            "feed_output_file_name": "feed-cd.rss"
+        }
+    }
+
+    quickbaby = {
+        "username": "QuickBabyTV",
+        "preferred_video_format": "22",
+        "download_videos_start_date": "today-2day",
+        "download_videos_end_date": "today",
+        "keep_episodes_count": 4,
+        "rss": {
+            "title": "Livioso - QB",
+            "image": "goo.gl/VkvYQN",                              # FIXME
+            "description": "QB",
+            "link": "https://www.youtube.com/user/QuickBabyTV",
+            "author": "😎",
+            "base_url": "http://livio.li/podcasts/yt/",
+            "feed_output_file_name": "feed-qb.rss"
+        }
+    }
+
     # TODO: move this to a JSON
     # download & build feed
     # for these channels
     channels_to_download = [
         caseyneistat,
+        johnoliver,
+        chromedevelopers,
+        quickbaby,
     ]
 
     # TODO: Load download_videos before
