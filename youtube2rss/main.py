@@ -199,7 +199,7 @@ def main():
     chromedevelopers = {
         "username": "ChromeDevelopers",
         "preferred_video_format": "22",
-        "download_videos_start_date": "today-2day",
+        "download_videos_start_date": "today-4day",
         "download_videos_end_date": "today",
         "keep_episodes_count": 4,
         "rss": {
