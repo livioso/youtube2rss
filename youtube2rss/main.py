@@ -6,9 +6,6 @@ import urllib
 import json
 import os
 
-# keep track of the downloaded videos here
-downloaded_videos = []
-
 
 # get the meta data we care about there is much more
 # (different formats etc.) but we do not need it anyways.
@@ -42,12 +39,12 @@ def get_metadata(filename):
 #   'status': 'finished',
 #   'total_bytes': 410304772
 # }
-def progress_hook(progress, channel):
+def progress_hook(progress, channel, downloads):
     if progress.get('status') == 'finished':
         filename_video = progress.get('filename')
         base_filename = os.path.splitext(filename_video)[0]
 
-        # the metadata file is stored with the extension .info.json
+        # the meta data file is stored with the extension .info.json
         filename_metadata = "{filename}{extension}".format(
             filename=base_filename,
             extension=".info.json")
@@ -60,8 +57,7 @@ def progress_hook(progress, channel):
             'channel': channel,
         }
 
-        downloaded_videos.append(video)
-        build_rss_feed(channel)  # FIXME just for debugging
+        downloads.append(video)
 
 
 def download(channel):
@@ -73,19 +69,24 @@ def download(channel):
         end=channel.get("download_videos_end_date")
     )
 
+    # keep track of the downloads
+    downloads = []
+
     options = {
         'format': video_format,
         'daterange': within_range,
         'ignoreerrors': True,           # can happen when format is not available, then just skip.
         'writeinfojson': True,          # write the video description to .info.json.
         'nooverwrites': True,           # prevent overwriting files.
-        'progress_hooks': [lambda progress: progress_hook(progress, channel)]
+        'progress_hooks': [lambda progress: progress_hook(progress, channel, downloads)]
     }
 
     with youtube_dl.YoutubeDL(options) as ydl:
         ydl.download(['ytuser:{username}'.format(
             username=channel.get("username")
         )])
+
+    return downloads
 
 
 def build_rss_episode_item(video, channel):
@@ -122,7 +123,7 @@ def build_rss_episode_item(video, channel):
     return item  # minimal item tag
 
 
-def build_rss_feed(channel_info):
+def build_rss_feed(channel_info, channel_downloads):
     root = et.Element('rss')
     root.set('version', "2.0")
     channel = et.SubElement(root, 'channel')
@@ -146,7 +147,7 @@ def build_rss_feed(channel_info):
     description.text = rss.get("description")
 
     # append episodes (aka 'items')
-    for video in downloaded_videos:
+    for video in channel_downloads:
         item = build_rss_episode_item(video, channel_info)
         channel.append(item)
 
@@ -154,10 +155,6 @@ def build_rss_feed(channel_info):
     tree = et.ElementTree(root)
     tree.write(rss.get("feed_output_file_name"),
                xml_declaration=True, encoding='utf-8')
-
-
-def cleanup(channel):
-    print("Clean up unused, old files")  # TODO
 
 
 def main():
@@ -199,7 +196,7 @@ def main():
     chromedevelopers = {
         "username": "ChromeDevelopers",
         "preferred_video_format": "22",
-        "download_videos_start_date": "today-4day",
+        "download_videos_start_date": "today-2day",
         "download_videos_end_date": "today",
         "keep_episodes_count": 4,
         "rss": {
@@ -234,17 +231,16 @@ def main():
     # download & build feed
     # for these channels
     channels_to_download = [
-        quickybaby,
-        caseyneistat,
-        johnoliver,
         chromedevelopers,
+        # quickybaby,
+        # caseyneistat,
+        # johnoliver,
     ]
 
     # TODO: Load download_videos before
     # downloading & dump it to JSON after.
     for channel in channels_to_download:
-        download(channel)
-        build_rss_feed(channel)
-        cleanup(channel)
+        downloads = download(channel)
+        build_rss_feed(channel, downloads)
 
 main()
