@@ -1,4 +1,6 @@
 #!/usr/bin/env python3.4
+from os import walk
+from pathlib import Path
 from xml.etree import ElementTree as et
 import youtube_dl
 import datetime
@@ -24,6 +26,8 @@ def get_metadata(filename):
             "webpage_url": video_info.get("webpage_url"),              # link to Youtube video
             "uploader_url": video_info.get("uploader_url"),            # link to profile
             "filesize": video_info.get("filesize", 0),                 # file size in bytes
+            "_video_filename": video_info.get("_filename"),            # filename of the video file
+            "_metadata_filename": filename,                            # filename of meta data file
             "_url": video_info.get("url"),                             # points to mp4/video (FIXME)
         }
 
@@ -61,7 +65,7 @@ def progress_hook(progress, channel, downloads):
 
 
 def download(channel):
-    # figure this out with youtube-dl -F
+    # figure this out with youtube-dl -F => likely 22 (video/mp4)
     video_format = channel.get("preferred_video_format")
 
     within_range = youtube_dl.utils.DateRange(
@@ -123,9 +127,10 @@ def build_rss_episode_item(video, channel):
     return item  # minimal item tag
 
 
-def build_rss_feed(channel_info, channel_downloads):
+def build_rss_channel(channel_info):
     root = et.Element('rss')
     root.set('version', "2.0")
+    root.set('xmlns:itunes', "http://www.itunes.com/dtds/podcast-1.0.dtd")
     channel = et.SubElement(root, 'channel')
 
     rss = channel_info.get("rss")
@@ -146,25 +151,76 @@ def build_rss_feed(channel_info, channel_downloads):
     description = et.SubElement(channel, 'description')
     description.text = rss.get("description")
 
+    return root
+
+
+def load_rss_feed(channel_info):
+    rss = channel_info.get("rss")
+    rss_feed_file_path = rss.get("feed_output_file_name")
+    rss_feed_file = Path(rss_feed_file_path)
+
+    # use the existing file, if existing & able to parse.
+    root = build_rss_channel(channel_info)
+
+    try:
+        if rss_feed_file.is_file():
+            tree = et.parse(rss_feed_file_path)
+            root = tree.getroot()
+    except:
+        print("😐  Can not parse RSS feed XML. Discarding file.")
+
+    return root
+
+
+def build_rss_feed(channel_info, channel_downloads, xml_root):
+    channel = xml_root.find("channel")
     # append episodes (aka 'items')
     for video in channel_downloads:
         item = build_rss_episode_item(video, channel_info)
         channel.append(item)
 
-    # dump the tree as feed.xml
-    tree = et.ElementTree(root)
-    tree.write(rss.get("feed_output_file_name"),
-               xml_declaration=True, encoding='utf-8')
+    return et.ElementTree(xml_root)
 
+
+def write_rss_feed(channel_info, rss_feed_root):
+    rss = channel_info.get("rss")
+    rss_feed_root.write(rss.get("feed_output_file_name"),
+                        xml_declaration=True, encoding='utf-8')
+
+
+def discard_old_files(channel, downloads):
+    files_to_keep = []     # these are the good guys
+    files_to_discard = []  # these are the bad guys!
+
+    # keep: the feed itself
+    rss_feed_file = channel.get("rss").get("feed_output_file_name")
+    files_to_keep.append(rss_feed_file)
+
+    # keep: all (in this cycle) downloaded videos & meta data
+    for download in downloads:
+        metadata_file = download.get("metadata").get("_metadata_filename")
+        video_file = download.get("metadata").get("_video_filename")
+        files_to_keep.append(metadata_file)
+        files_to_keep.append(video_file)
+
+    # discard: assume guilty until proven innocent
+    for (dirpath, dirnames, filenames) in walk("."):
+        files_to_discard.extend(filenames)
+        break
+
+    # discard: files_to_discard XOR files_to_keep
+    files_to_discard = list(set(files_to_discard) ^ set(files_to_keep))
+    for file_to_discard in files_to_discard:
+        print("  ➟ Discarding {filename}".format(filename=file_to_discard))
+        os.remove(file_to_discard)
 
 def main():
-
     caseyneistat = {
         "username": "caseyneistat",
         "preferred_video_format": "22",                             # video/mp4 => see youtube-dl -F.
-        "download_videos_start_date": "today-1day",                 # should be fine, since yesterday.
+        "download_videos_start_date": "today-7day",                 # should be fine, since yesterday.
         "download_videos_end_date": "today",                        # cron job runs frequently anyway.
-        "keep_episodes_count": 4,                                   # only keep latest 4 (preserve space)
+        "file_usage_quota_gb": 2,
         "rss": {                                                    # mostly irrelevant, just required
             "title": "Livioso - Casey Neistat",                     # for a minimal viable set of tags.
             "image": "goo.gl/VkvYQN",                               # FIXME used as podcast image
@@ -179,9 +235,9 @@ def main():
     johnoliver = {
         "username": "LastWeekTonight",
         "preferred_video_format": "22",
-        "download_videos_start_date": "today-2day",
+        "download_videos_start_date": "today-7day",
         "download_videos_end_date": "today",
-        "keep_episodes_count": 4,
+        "file_usage_quota_gb": 2,
         "rss": {
             "title": "Livioso - Last Week Tonight",
             "image": "goo.gl/VkvYQN",                              # FIXME
@@ -196,9 +252,9 @@ def main():
     chromedevelopers = {
         "username": "ChromeDevelopers",
         "preferred_video_format": "22",
-        "download_videos_start_date": "today-2day",
+        "download_videos_start_date": "today-7day",
         "download_videos_end_date": "today",
-        "keep_episodes_count": 4,
+        "file_usage_quota_gb": 2,
         "rss": {
             "title": "Livioso - Chrome Developers",
             "image": "goo.gl/VkvYQN",                              # FIXME
@@ -213,9 +269,26 @@ def main():
     quickybaby = {
         "username": "QuickyBabyTV",
         "preferred_video_format": "22",
-        "download_videos_start_date": "today-2day",
+        "download_videos_start_date": "today-7day",
         "download_videos_end_date": "today",
-        "keep_episodes_count": 4,
+        "file_usage_quota_gb": 2,
+        "rss": {
+            "title": "Livioso - QB",
+            "image": "goo.gl/VkvYQN",                              # FIXME
+            "description": "QB",
+            "link": "https://www.youtube.com/user/QuickyBabyTV",
+            "author": "😎",
+            "base_url": "http://livio.li/podcasts/yt/",
+            "feed_output_file_name": "feed-qb.rss"
+        }
+    }
+
+    r00k123123 = {
+        "username": "r00k123123",
+        "preferred_video_format": "22",
+        "download_videos_start_date": "today-1year",
+        "download_videos_end_date": "today",
+        "file_usage_quota_gb": 2,
         "rss": {
             "title": "Livioso - QB",
             "image": "goo.gl/VkvYQN",                              # FIXME
@@ -231,7 +304,7 @@ def main():
     # download & build feed
     # for these channels
     channels_to_download = [
-        chromedevelopers,
+        r00k123123,
         # quickybaby,
         # caseyneistat,
         # johnoliver,
@@ -240,7 +313,23 @@ def main():
     # TODO: Load download_videos before
     # downloading & dump it to JSON after.
     for channel in channels_to_download:
+
+        print("🚚  Loading RSS feed file...")
+        rss_feed = load_rss_feed(channel)
+
+        print("🌍  Downloading channel {username}..."
+              .format(username=channel.get("username")))
         downloads = download(channel)
-        build_rss_feed(channel, downloads)
+
+        print("🚚  Building RSS Feed...")
+        rss_feed = build_rss_feed(channel, downloads, rss_feed)
+
+        print("🚚  Writing RSS feed file...")
+        write_rss_feed(channel, rss_feed)
+
+        # print("🗑  Discarding old files...")
+        # discard_old_files(channel, downloads)
+
+        print("🍹  Finalizing... Done.")
 
 main()
