@@ -1,6 +1,6 @@
 #!/usr/bin/env python3.4
+
 from os import walk
-from pathlib import Path
 from xml.etree import ElementTree as et
 import youtube_dl
 import datetime
@@ -12,8 +12,8 @@ import os
 # get the meta data we care about there is much more
 # (different formats etc.) but we do not need it anyways.
 def get_metadata(filename):
-    with open(filename) as json_data:
-        video_info = json.load(json_data)
+    with open(filename) as metadata_file:
+        video_info = json.load(metadata_file)
 
         metadata = {
             "id": video_info.get("id"),                                # id of the video
@@ -29,6 +29,7 @@ def get_metadata(filename):
             "_video_filename": video_info.get("_filename"),            # filename of the video file
             "_metadata_filename": filename,                            # filename of meta data file
             "_url": video_info.get("url"),                             # points to mp4/video (FIXME)
+            "_keep": True,                                             # keep only once
         }
 
         return metadata
@@ -64,7 +65,7 @@ def progress_hook(progress, channel, downloads):
         downloads.append(video)
 
 
-def download(channel):
+def download(channel, downloads):
     # figure this out with youtube-dl -F => likely 22 (video/mp4)
     video_format = channel.get("preferred_video_format")
 
@@ -72,9 +73,6 @@ def download(channel):
         start=channel.get("download_videos_start_date"),
         end=channel.get("download_videos_end_date")
     )
-
-    # keep track of the downloads
-    downloads = []
 
     options = {
         'format': video_format,
@@ -91,6 +89,25 @@ def download(channel):
         )])
 
     return downloads
+
+
+def processing_file(channel):
+    rss = channel.get("rss")
+    rss_file = rss.get("feed_output_file_name")
+    return "{rss_file}.json".format(
+        rss_file=rss_file
+    )
+
+
+def readProcessingFile(channel):
+    with open(processing_file(channel), 'r') as input_file:
+        return json.load(input_file)
+    return []
+
+
+def writeProcessingFile(channel, downloads):
+    with open(processing_file(channel), 'w') as output_file:
+        json.dump(downloads, output_file)
 
 
 def build_rss_episode_item(video, channel):
@@ -127,7 +144,8 @@ def build_rss_episode_item(video, channel):
     return item  # minimal item tag
 
 
-def build_rss_channel(channel_info):
+# build the minimal root // channel RSS feed.
+def build_rss_root(channel_info):
     root = et.Element('rss')
     root.set('version', "2.0")
     root.set('xmlns:itunes', "http://www.itunes.com/dtds/podcast-1.0.dtd")
@@ -154,38 +172,29 @@ def build_rss_channel(channel_info):
     return root
 
 
-def load_rss_feed(channel_info):
-    rss = channel_info.get("rss")
-    rss_feed_file_path = rss.get("feed_output_file_name")
-    rss_feed_file = Path(rss_feed_file_path)
+def build_rss_feed(channel_info, channel_downloads):
+    root = build_rss_root(channel_info)
+    channel = root.find("channel")
 
-    # use the existing file, if existing & able to parse.
-    root = build_rss_channel(channel_info)
-
-    try:
-        if rss_feed_file.is_file():
-            tree = et.parse(rss_feed_file_path)
-            root = tree.getroot()
-    except:
-        print("😐  Can not parse RSS feed XML. Discarding file.")
-
-    return root
-
-
-def build_rss_feed(channel_info, channel_downloads, xml_root):
-    channel = xml_root.find("channel")
-    # append episodes (aka 'items')
+    # append episodes aka 'items'
     for video in channel_downloads:
         item = build_rss_episode_item(video, channel_info)
         channel.append(item)
 
-    return et.ElementTree(xml_root)
+    write_rss_feed(channel_info, root)
 
 
-def write_rss_feed(channel_info, rss_feed_root):
+def write_rss_feed(channel_info, root):
+    print("🚚  Writing RSS feed file...")
     rss = channel_info.get("rss")
-    rss_feed_root.write(rss.get("feed_output_file_name"),
-                        xml_declaration=True, encoding='utf-8')
+    rss_file = rss.get("feed_output_file_name")
+
+    root_et = et.ElementTree(root)
+    root_et.write(
+        rss_file,
+        xml_declaration=True,
+        encoding='utf-8'
+    )
 
 
 def discard_old_files(channel, downloads):
@@ -195,6 +204,9 @@ def discard_old_files(channel, downloads):
     # keep: the feed itself
     rss_feed_file = channel.get("rss").get("feed_output_file_name")
     files_to_keep.append(rss_feed_file)
+
+    # keep: the processing file
+    files_to_keep.append(processing_file(channel))
 
     # keep: all (in this cycle) downloaded videos & meta data
     for download in downloads:
@@ -314,21 +326,20 @@ def main():
     # downloading & dump it to JSON after.
     for channel in channels_to_download:
 
-        print("🚚  Loading RSS feed file...")
-        rss_feed = load_rss_feed(channel)
+        # keep track of previous downloads
+        downloads = readProcessingFile(channel)
 
         print("🌍  Downloading channel {username}..."
               .format(username=channel.get("username")))
-        downloads = download(channel)
+        downloads = download(channel, downloads)
 
         print("🚚  Building RSS Feed...")
-        rss_feed = build_rss_feed(channel, downloads, rss_feed)
+        build_rss_feed(channel, downloads)
 
-        print("🚚  Writing RSS feed file...")
-        write_rss_feed(channel, rss_feed)
+        print("🗑  Discarding old files...")
+        discard_old_files(channel, downloads)
 
-        # print("🗑  Discarding old files...")
-        # discard_old_files(channel, downloads)
+        writeProcessingFile(channel, downloads)
 
         print("🍹  Finalizing... Done.")
 
