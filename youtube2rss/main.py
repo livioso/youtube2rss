@@ -66,12 +66,12 @@ def progress_hook(progress, channel, downloads):
 
 
 def download(channel, downloads):
-    verbose = channel.get("verbose_download_output")
-    video_format = channel.get("preferred_video_format")
+    verbose = channel.get("verbose_output")
+    download_settings = channel.get("download")
     archive_file = get_download_archive_filepath(channel)
     within_range = youtube_dl.utils.DateRange(
-        start=channel.get("download_videos_start_date"),
-        end=channel.get("download_videos_end_date")
+        start=download_settings.get("from"),
+        end=download_settings.get("to")
     )
 
     # you can find all the options in the YoutubeDL.py file on Github, see:
@@ -79,15 +79,14 @@ def download(channel, downloads):
     #
     options = {
         'quiet': not verbose,                   # do not print messages to standard out.
-        'format': video_format,                 # figure out with youtube-dl -F => likely 22 (video/mp4).
+        'format': "22",                         # figure out with youtube-dl -F => 22 = video/mp4.
         'download_archive': archive_file,       # file that tracks downloads, videos present in file are not downloaded again.
         'daterange': within_range,              # date range of videos we are going to download.
         'ignoreerrors': True,                   # can happen when format is not available, then just skip.
         'writeinfojson': True,                  # write the video description to .info.json.
         'nooverwrites': True,                   # prevent overwriting files if we have them.
         'progress_hooks': [
-            lambda progress:
-                progress_hook(progress, channel, downloads)
+            lambda progress: progress_hook(progress, channel, downloads)
         ]
     }
 
@@ -142,7 +141,7 @@ def build_rss_episode_item(video, channel):
     description.text = metadata.get('description')
 
     enclosure_url = "{base_url}{filename}".format(
-        base_url=channel.get("rss").get("base_url"),
+        base_url=channel.get("rss").get("feed_base_url"),
         filename=video.get("filename_video_url")
     )
 
@@ -230,9 +229,10 @@ def discard_old_files(channel, downloads):
     files_to_keep.append(get_processing_filepath(channel))
 
     # keep: all (in this cycle) downloaded videos & meta data
-    for download in downloads:
+    for download in downloads[-50:]:
         metadata_file = download.get("metadata").get("_metadata_filename")
         video_file = download.get("metadata").get("_video_filename")
+        download["metadata"]["_keep"] = True
         files_to_keep.append(metadata_file)
         files_to_keep.append(video_file)
 
@@ -253,19 +253,20 @@ def discard_old_files(channel, downloads):
 def main():
     r00k123123 = {
         "username": "r00k123123",
-        "verbose_download_output": True,
-        "preferred_video_format": "22",
-        "download_videos_start_date": "today-6year",
-        "download_videos_end_date": "today",
-        "file_usage_quota_gb": 2,
+        "verbose_output": False,
+        "download": {
+            "from": "today-6year",
+            "to": "today",
+            "keep_latest": 5,
+        },
         "rss": {
             "title": "Livioso - QB",
-            "image": "goo.gl/VkvYQN",                              # FIXME
-            "description": "QB",
-            "link": "https://www.youtube.com/user/QuickyBabyTV",
             "author": "😎",
-            "base_url": "http://livio.li/podcasts/yt/",
-            "feed_output_file_name": "feed-qb.rss"
+            "description": "QB",
+            "image": "goo.gl/VkvYQN",
+            "feed_base_url": "http://livio.li/podcasts/yt/",
+            "feed_output_file_name": "feed-qb.rss",
+            "link": "https://www.youtube.com/user/QuickyBabyTV",
         }
     }
 
