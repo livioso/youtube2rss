@@ -1,0 +1,18 @@
+{
+  "username": "caseyneistat",
+  "verbose_output": true,
+  "download": {
+    "from": "today-1week",
+    "to": "today",
+    "keep_latest": 4
+  },
+  "rss": {
+    "title": "Casey Neistat",
+    "author": "Casey Neistat",
+    "description": "Casey Neistat daily vlogs",
+    "image": "https://yt3.ggpht.com/-x2NNN2y49G0/AAAAAAAAAAI/AAAAAAAAAAA/RhwVaxMvqW8/s100-c-k-no-mo-rj-c0xffffff/photo.jpg",
+    "feed_base_url": "http://livio.li/podcasts/yt/",
+    "feed_output_file_name": "feed-casey.rss",
+    "link": "https://www.youtube.com/user/caseyneistat"
+  }
+}
