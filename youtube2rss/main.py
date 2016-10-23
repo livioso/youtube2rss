@@ -13,7 +13,7 @@ import os
 # channel (options) are described in the channel_file
 # => see read_channel_file for more.
 def download(channel, downloads):
-    verbose = channel.get('verbose_output')
+    verbose = channel.get('verbose_output', False)
     download_settings = channel.get('download')
     archive_file = get_download_archive_filepath(channel)
     within_range = youtube_dl.utils.DateRange(
@@ -25,13 +25,14 @@ def download(channel, downloads):
     # https://github.com/rg3/youtube-dl/blob/master/youtube_dl/YoutubeDL.py#L131-L291
     #
     options = {
-        'quiet': not verbose,                   # do not print messages to standard out.
-        'format': '22',                         # figure out with youtube-dl -F => 22 = video/mp4.
-        'download_archive': archive_file,       # file that tracks downloads, videos present in file are not downloaded again.
-        'daterange': within_range,              # date range of videos we are going to download.
-        'ignoreerrors': True,                   # can happen when format is not available, then just skip.
-        'writeinfojson': True,                  # write the video description to .info.json.
-        'nooverwrites': True,                   # prevent overwriting files if we have them.
+        'quiet': not verbose,                   # do not print messages to standard out
+        'format': '22',                         # figure out with youtube-dl -F => 22 = video/mp4
+        'download_archive': archive_file,       # file that tracks downloads, videos present in file are not downloaded again
+        'daterange': within_range,              # date range of videos we are going to download
+        'restrictfilenames': True,              # do not allow "&" and spaces in file names
+        'ignoreerrors': True,                   # can happen when format is not available, then just skip
+        'writeinfojson': True,                  # write the video description to .info.json
+        'nooverwrites': True,                   # prevent overwriting files if we have them
         'progress_hooks': [
             lambda progress: progress_hook(progress, channel, downloads)
         ]
