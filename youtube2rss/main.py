@@ -207,7 +207,7 @@ def discard_old_downloads(channel, downloads):
 
     # keep: latest downloads, adjust with download.keep_latest
     keep_latest = channel.get('download').get('keep_latest')
-    for download in downloads[-keep_latest:]:
+    for download in downloads[:-keep_latest]:
         metadata_file = download.get('metadata').get('_metadata_filename')
         video_file = download.get('metadata').get('_video_filename')
         files_to_keep.append(metadata_file)
