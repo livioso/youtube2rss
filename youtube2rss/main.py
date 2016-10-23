@@ -275,7 +275,7 @@ def read_channel_file(argv):
 
 
 def main():
-    print('⏳  Preparing channel download...')
+    print(u'\u23f3  Preparing channel download...')
     channel = read_channel_file(sys.argv)
     downloads = read_processing_file(channel)
 
@@ -292,4 +292,4 @@ def main():
 
     print('🍹  Finalizing... Done.')
 
-main()  # let's rock 🐣
+main()  # let's rock
