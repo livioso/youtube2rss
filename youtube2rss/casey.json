@@ -2,7 +2,7 @@
   "username": "caseyneistat",
   "verbose_output": true,
   "download": {
-    "from": "today-1week",
+    "from": "today-3week",
     "to": "today",
     "keep_latest": 4
   },
