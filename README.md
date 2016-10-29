@@ -1,13 +1,11 @@
-📲 Download a Youtube channel and build a RSS podcast feed for it.
+Download a Youtube channel and build a RSS podcast feed for it.
 
-### 🤔 Motivation
+### Motivation 🤔
 My growing number of Youtube Channel Subscriptions caused a lot of
-frustration with the official Youtube app.
-
-The app doesn't allow me to download videos. Neither is it possible to
-resume playback nor can I play a video when the app is not on screen.
-
-Features that my podcast client of choice, PocketCasts already has.
+frustration with the official Youtube app. The app doesn't allow me
+to download videos. Neither is it possible to resume playback nor
+can I play a video when the app is not on screen. Features that my
+podcast client of choice, PocketCasts already has.
 
 So the solution is simple, just get all the Youtube Subscriptions to
 my podcast client. This is exactly what this script does:
@@ -17,13 +15,13 @@ my podcast client. This is exactly what this script does:
   which is compatible with any Podcast client.
 - Optional: Delete old episodes to save precious disk space.
 
-### 🚀 Getting Started
+### Getting Started 🚀
 
 - Install all required packages: `pip3 install -r requirements.txt`
 - Edit the configuration file (see `casey.json` for an example)
 - Run the script with: `./youtube2rss/main.py ./youtube2rss/casey.json`
 
-### 🔧 Configuration, see `casey.json`
+### Configuration, see `casey.json` 🔧
 ```
   {
     "username": "caseyneistat",                                 # username, aka channel name
@@ -44,3 +42,4 @@ my podcast client. This is exactly what this script does:
     }
   }
 ```
+
