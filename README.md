@@ -1,4 +1,4 @@
-Download a Youtube channel and build a RSS podcast feed for it.
+> Download a Youtube channel and build a RSS podcast feed for it.
 
 ### Motivation 🤔
 My growing number of Youtube Channel Subscriptions caused a lot of
