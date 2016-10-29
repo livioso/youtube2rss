@@ -11,7 +11,7 @@ So the solution is simple, just get all the Youtube Subscriptions to
 my podcast client. This is exactly what this script does:
 
 - Download all videos from a channel (within a given date range).
-- Build a subscribe-able (iTunes RSS feed)[http://www.itunes.com/dtds/podcast-1.0.dtd]
+- Build a subscribe-able [iTunes RSS feed](http://www.itunes.com/dtds/podcast-1.0.dtd)
   which is compatible with any Podcast client.
 - Optional: Delete old episodes to save precious disk space.
 
