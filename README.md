@@ -24,7 +24,7 @@ my podcast client. This is exactly what this script does:
 ### Configuration, see `casey.json` 🔧
 ```
   {
-    "username": "caseyneistat",                                 # username, aka channel name
+    "channel": "ytuser:caseyneistat",                           # either username (prefix with ytuser:{username}), playlist id or channel id.
     "verbose_output": true,                                     # optional: show debug output, errors are always enabled
     "download": {
       "from": "today-1week",                                    # date range you wish to download, accepts: -xday, -xhour, -xweek
