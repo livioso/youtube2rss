@@ -17,7 +17,7 @@ def download(channel, downloads):
     download_settings = channel.get('download')
     archive_file = get_download_archive_filepath(channel)
     within_range = youtube_dl.utils.DateRange(
-        start=download_settings.get('from', 'today-1week'),
+        start=download_settings.get('from', None),
         end=download_settings.get('to', 'today')
     )
 
