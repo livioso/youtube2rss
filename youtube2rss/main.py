@@ -17,8 +17,8 @@ def download(channel, downloads):
     download_settings = channel.get('download')
     archive_file = get_download_archive_filepath(channel)
     within_range = youtube_dl.utils.DateRange(
-        start=download_settings.get('from'),
-        end=download_settings.get('to')
+        start=download_settings.get('from', None),
+        end=download_settings.get('to', 'today')
     )
 
     # you can find all the options in the YoutubeDL.py file on Github, see:
@@ -39,9 +39,7 @@ def download(channel, downloads):
     }
 
     with youtube_dl.YoutubeDL(options) as ydl:
-        ydl.download([
-            'ytuser:{username}'.format(username=channel.get('username'))
-        ])
+        ydl.download([channel.get('channel')])
 
     # sort the video by upload_date, given as a string => YYYYMMDD.
     downloads.sort(key=lambda video: video.get('metadata', {}).get('upload_date'))
@@ -230,9 +228,9 @@ def discard_old_downloads(channel, downloads):
 
 # filename of download_archive (an option by YoutubeDL).
 def get_download_archive_filepath(channel):
-    username = channel.get('username')
-    return '{username}_download_archive'.format(
-        username=username
+    channel = channel.get('channel')
+    return '{channel}_download_archive'.format(
+        channel=channel
     )
 
 
@@ -283,8 +281,8 @@ def main():
     channel = read_channel_file(sys.argv)
     downloads = read_processing_file(channel)
 
-    print('🌍  Downloading channel {username}...'
-          .format(username=channel.get('username')))
+    print('🌍  Downloading channel {channel}...'
+          .format(channel=channel.get('channel')))
     downloads = download(channel, downloads)
 
     print('⚙  Building RSS Feed...')

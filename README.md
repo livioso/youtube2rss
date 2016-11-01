@@ -24,11 +24,11 @@ my podcast client. This is exactly what this script does:
 ### Configuration, see `casey.json` 🔧
 ```
   {
-    "username": "caseyneistat",                                 # username, aka channel name
-    "verbose_output": true,                                     # optional: show debug output, errors are always enabled
+    "channel": "ytuser:caseyneistat",                           # either username (prefix with ytuser:{username}), playlist id or channel id.
+    "verbose_output": true,                                     # optional, default false: show debug output, errors are always enabled
     "download": {
-      "from": "today-1week",                                    # date range you wish to download, accepts: -xday, -xhour, -xweek
-      "to": "today",                                            # ^ the end date of the range, accepts the same format
+      "from": "today-2week",                                    # optional, default today-1week: date range you wish to download, accepts: -xday, -xhour, -xweek
+      "to": "today",                                            # optional, default today: ^ the end date of the range, accepts the same format
       "keep_latest": 4                                          # Max. amount of episodes you want to keep
     },
     "rss": {
