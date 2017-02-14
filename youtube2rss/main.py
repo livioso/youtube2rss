@@ -157,10 +157,14 @@ def build_rss_episode_item(video, channel):
     description = et.SubElement(item, 'description')
     description.text = metadata.get('description')
 
-    enclosure_url = '{base_url}{filename}'.format(
-        base_url=channel.get('rss').get('feed_base_url'),
-        filename=video.get('filename_video_url')
-    )
+    # enclosure_url = '{base_url}{filename}'.format(
+    #     base_url=channel.get('rss').get('feed_base_url'),
+    #     filename=video.get('filename_video_url')
+    # )
+
+    # what happens here?
+    enclosure_url = video.get('metadata').get('_url')
+
 
     enclosure = et.SubElement(item, 'enclosure')
     enclosure.set('url', enclosure_url)
