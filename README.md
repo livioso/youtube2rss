@@ -17,11 +17,10 @@ my podcast client. This is exactly what this script does:
 
 ### Getting Started 🚀
 
-- Install all required packages: `pip3 install -r requirements.txt`
-- Edit the configuration file (see `casey.json` for an example)
-- Run the script with: `./youtube2rss/main.py ./youtube2rss/casey.json`
+- `docker build -t youtube2rss .`
+- `docker run -it youtube2rss:latest`
 
-### Configuration, see `casey.json` 🔧
+### Configuration example `example.json`🔧
 ```
   {
     "channel": "ytuser:caseyneistat",                           # either username (prefix with ytuser:{username}), playlist id or channel id.
