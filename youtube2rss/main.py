@@ -25,17 +25,18 @@ def download(channel, downloads):
     # https://github.com/rg3/youtube-dl/blob/master/youtube_dl/YoutubeDL.py#L131-L291
     #
     options = {
-        'quiet': not verbose,                   # do not print messages to standard out
+        'quiet': verbose,                   # do not print messages to standard out
+        'forceurl': True,
         'format': '22',                         # figure out with youtube-dl -F => 22 = video/mp4
-        'download_archive': archive_file,       # file that tracks downloads, videos present in file are not downloaded again
-        'daterange': within_range,              # date range of videos we are going to download
-        'restrictfilenames': True,              # do not allow "&" and spaces in file names
-        'ignoreerrors': True,                   # can happen when format is not available, then just skip
-        'writeinfojson': True,                  # write the video description to .info.json
-        'nooverwrites': True,                   # prevent overwriting files if we have them
-        'progress_hooks': [
-            lambda progress: progress_hook(progress, channel, downloads)
-        ]
+        # 'download_archive': archive_file,       # file that tracks downloads, videos present in file are not downloaded again
+        # 'daterange': within_range,              # date range of videos we are going to download
+        # 'restrictfilenames': True,              # do not allow "&" and spaces in file names
+        # 'ignoreerrors': True,                   # can happen when format is not available, then just skip
+        # 'writeinfojson': True,                  # write the video description to .info.json
+        # 'nooverwrites': True,                   # prevent overwriting files if we have them
+        # 'progress_hooks': [
+        #     lambda progress: progress_hook(progress, channel, downloads)
+        # ]
     }
 
     with youtube_dl.YoutubeDL(options) as ydl:
@@ -121,7 +122,7 @@ def build_rss_root(channel_info):
     root.set('version', '2.0')
     root.set('xmlns:itunes', 'http://www.itunes.com/dtds/podcast-1.0.dtd')
     channel = et.SubElement(root, 'channel')
-    rss = channel_info.get('rss')
+    rss = channel_info.get('rss', {})
 
     # add minimal set of elements to channel
     title = et.SubElement(channel, 'title')
@@ -157,10 +158,10 @@ def build_rss_episode_item(video, channel):
     description = et.SubElement(item, 'description')
     description.text = metadata.get('description')
 
-    enclosure_url = '{base_url}{filename}'.format(
-        base_url=channel.get('rss').get('feed_base_url'),
-        filename=video.get('filename_video_url')
-    )
+    # enclosure_url = '{base_url}{filename}'.format(
+    #     base_url=channel.get('rss').get('feed_base_url'),
+    #     filename=video.get('filename_video_url')
+    # )
 
     enclosure = et.SubElement(item, 'enclosure')
     enclosure.set('url', enclosure_url)
