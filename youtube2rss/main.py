@@ -1,19 +1,24 @@
-#!/usr/bin/env python3.4
 from os import walk
 from xml.etree import ElementTree as et
 import youtube_dl
 import datetime
 import hashlib
+import logging
 import urllib
 import json
 import sys
 import os
 
+logger = logging.getLogger(__name__)
 
-# download a channel and return array of downloaded videos.
-# channel (options) are described in the channel_file
-# => see read_channel_file for more.
+
 def download(channel, downloads):
+    '''
+    Download a channel and return list of downloaded videos.
+    Channel (options) are described in the channel_file
+    → see read_channel_file for more.
+    '''
+
     verbose = channel.get('verbose_output', False)
     download_settings = channel.get('download')
     archive_file = get_download_archive_filepath(channel)
@@ -48,16 +53,18 @@ def download(channel, downloads):
     return downloads
 
 
-# progress hook that gets called during download =>
-# this callback gets progress that is defined like this:
-# {
-#   '_total_bytes_str': '391.30MiB',
-#   'filename': 'five million-UqADuUBMoZ4.mp4',
-#   'status': 'finished',
-#   'total_bytes': 410304772
-# }
-#
 def progress_hook(progress, channel, downloads):
+    '''
+    Progress hook that gets called during download
+    → this callback gets progress that is defined like this:
+    {
+      '_total_bytes_str': '391.30MiB',
+      'filename': 'five million-UqADuUBMoZ4.mp4',
+      'status': 'finished',
+      'total_bytes': 410304772
+    }
+    '''
+
     if progress.get('status') == 'finished':
         filename_video = progress.get('filename')
         base_filename = os.path.splitext(filename_video)[0]
@@ -78,9 +85,12 @@ def progress_hook(progress, channel, downloads):
         downloads.append(video)
 
 
-# get the meta data we care about there is much more
-# (different formats etc.) but we do not need it anyways.
 def get_metadata(filename):
+    '''
+    Get the meta data we care about there is much more
+    (different formats etc.) but we do not need it anyways.
+    '''
+
     with open(filename) as metadata_file:
         video_info = json.load(metadata_file)
 
@@ -103,7 +113,6 @@ def get_metadata(filename):
         return metadata
 
 
-# build the RSS feed & write it to feed_output_file_name.
 def build_rss_feed(channel_info, channel_downloads):
     root = build_rss_root(channel_info)
     channel = root.find('channel')
@@ -113,10 +122,9 @@ def build_rss_feed(channel_info, channel_downloads):
         item = build_rss_episode_item(video, channel_info)
         channel.append(item)
 
-    write_rss_feed(channel_info, root)
+    return root
 
 
-# build the minimal root // channel RSS feed.
 def build_rss_root(channel_info):
     root = et.Element('rss')
     root.set('version', '2.0')
@@ -143,7 +151,6 @@ def build_rss_root(channel_info):
     return root
 
 
-# build the minimal item (aka episodes):
 def build_rss_episode_item(video, channel):
     metadata = video.get('metadata')
 
@@ -190,9 +197,12 @@ def write_rss_feed(channel_info, root):
     )
 
 
-# delete files that are not used anymore (see keep_latest)
-# does not delete .rss, .rss.json and download_archive.
 def discard_old_downloads(channel, downloads):
+    '''
+    Delete files that are not used anymore (only keep_latest)
+    does not delete .rss, .rss.json and download_archive!
+    '''
+
     files_to_keep = []     # these are the good guys
     files_to_discard = []  # these are the bad guys!
 
@@ -223,14 +233,12 @@ def discard_old_downloads(channel, downloads):
     # discard: files_to_discard without files_to_keep
     files_to_discard = list(set(files_to_discard) - set(files_to_keep))
     for file_to_discard in files_to_discard:
-        print('  ➟ Discarding {filename}'.format(filename=file_to_discard))
+        logger.debug('  ➟ Discarding {filename}'.format(filename=file_to_discard))
         os.remove(file_to_discard)
 
 
-# filename of download_archive (an option by YoutubeDL).
 def get_download_archive_filepath(channel):
     channel = channel.get('channel')
-
     # use hash as a valid channel can also be a channel url
     channel_hash = hashlib.md5(channel.encode('utf-8')).hexdigest()[:10]
 
@@ -239,7 +247,6 @@ def get_download_archive_filepath(channel):
     )
 
 
-# filename of our own processing file (dump of downloads)
 def get_processing_filepath(channel):
     rss = channel.get('rss')
     rss_file = rss.get('feed_output_file_name')
@@ -261,11 +268,13 @@ def read_processing_file(channel):
         return []  # no such file, or whatever
 
 
-# read a channel from json for the required
-# structure see casey.json
 def read_channel_file(argv):
+    '''
+    Read a channel from json for the required structure.
+    '''
+
     if len(argv) != 2:
-        print(' ➟ Aborting. Please specify a channel json as parameter.')
+        logger.error(' ➟ Aborting. Please specify a channel json as parameter.')
         sys.exit(1)
 
     # we only have this one parameter
@@ -275,28 +284,32 @@ def read_channel_file(argv):
         with open(channel_json_filepath, 'r') as input_file:
             return json.load(input_file)
     except:
-        print(' ➟ Aborting. Can not parse file {filename}'.format(
+        logger.error(' ➟ Aborting. Can not parse file {filename}'.format(
             filename=channel_json_filepath
         ))
         sys.exit(1)
 
 
 def main():
-    print('⏳  Preparing channel download...')
+    logging.basicConfig(level=logging.DEBUG)
+
+    logger.info('⏳  Preparing channel download...')
     channel = read_channel_file(sys.argv)
     downloads = read_processing_file(channel)
 
-    print('🌍  Downloading channel {channel}...'
-          .format(channel=channel.get('channel')))
+    logger.info('🌍  Downloading channel {channel}...'.format(
+        channel=channel.get('channel')))
     downloads = download(channel, downloads)
 
-    print('⚙  Building RSS Feed...')
-    build_rss_feed(channel, downloads)
+    logger.info('⚙  Building RSS Feed...')
+    rss_feed = build_rss_feed(channel, downloads)
+    write_rss_feed(channel, rss_feed)
 
-    print('🗑  Cleaning up...')
+    logger.info('🗑  Cleaning up...')
     discard_old_downloads(channel, downloads)
     write_processing_file(channel, downloads)
 
-    print('🍹  Finalizing... Done.')
+    logger.info('🍹  Finalizing... Done.')
+
 
 main()  # let's rock 🐣
