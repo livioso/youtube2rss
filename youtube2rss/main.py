@@ -232,7 +232,7 @@ def get_download_archive_filepath(channel):
     channel = channel.get('channel')
 
     # use hash as a valid channel can also be a channel url
-    channel_hash = hashlib.md5(channel).hexdigest()[:10]
+    channel_hash = hashlib.md5(channel.encode('utf-8')).hexdigest()[:10]
 
     return '{channel}_download_archive'.format(
         channel=channel_hash
