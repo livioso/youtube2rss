@@ -1,7 +1,7 @@
 from os import walk
 from xml.etree import ElementTree as et
+from datetime import datetime
 import youtube_dl
-import datetime
 import hashlib
 import logging
 import urllib
@@ -175,12 +175,20 @@ def build_rss_episode_item(video, channel):
     enclosure.set('length', str(metadata['filesize']))
     enclosure.set('type', 'video/mp4')
 
-    # pubDate is a bit clowny. The expected format is: Wed, 03 Nov 2015 19:18:00 GMT 🙄
-    upload_date = datetime.datetime.strptime(metadata.get('upload_date'), '%Y%m%d').date()
-    upload_date_formated = upload_date.strftime('%a, %d %b %Y 12:00:00 GMT')
+    # TODO (livioso 02.10.2017) Move published_date_formated to outer scope
+    # default use pubDate from Youtube, but make it a channel
+    # option. Alternatively, use now as pubDate; useful for
+    # often changing / old playlists.
+    now_as_pub_date = channel['rss'].get('now_as_pub_date', False)
+    if now_as_pub_date:
+        published_date = datetime.now()
+        published_date_formated = published_date.strftime('%a, %d %b %Y %H:%M:%S GMT')
+    else:
+        published_date = datetime.strptime(metadata.get('upload_date'), '%Y%m%d 12:00:00').date()
+        published_date_formated = published_date.strftime('%a, %d %b %Y 12:00:00 GMT')
 
     pubDate = et.SubElement(item, 'pubDate')
-    pubDate.text = upload_date_formated
+    pubDate.text = published_date_formated
 
     return item  # minimal item tag
 
