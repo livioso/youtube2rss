@@ -184,7 +184,7 @@ def build_rss_episode_item(video, channel):
         published_date = datetime.now()
         published_date_formated = published_date.strftime('%a, %d %b %Y %H:%M:%S GMT')
     else:
-        published_date = datetime.strptime(metadata.get('upload_date'), '%Y%m%d 12:00:00').date()
+        published_date = datetime.strptime(metadata.get('upload_date'), '%Y%m%d').date()
         published_date_formated = published_date.strftime('%a, %d %b %Y 12:00:00 GMT')
 
     pubDate = et.SubElement(item, 'pubDate')
