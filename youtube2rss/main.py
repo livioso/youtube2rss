@@ -175,17 +175,13 @@ def build_rss_episode_item(video, channel):
     enclosure.set('length', str(metadata['filesize']))
     enclosure.set('type', 'video/mp4')
 
-    # TODO (livioso 02.10.2017) Move published_date_formated to outer scope
-    # default use pubDate from Youtube, but make it a channel
-    # option. Alternatively, use now as pubDate; useful for
-    # often changing / old playlists.
-    now_as_pub_date = channel['rss'].get('now_as_pub_date', False)
-    if now_as_pub_date:
-        published_date = datetime.now()
-        published_date_formated = published_date.strftime('%a, %d %b %Y %H:%M:%S GMT')
-    else:
-        published_date = datetime.strptime(metadata.get('upload_date'), '%Y%m%d').date()
-        published_date_formated = published_date.strftime('%a, %d %b %Y 12:00:00 GMT')
+    # use now since metadata does not contain the time. Another reason for
+    # using now is that for playlists we also want to preserve the order
+    # of when we added the video and not when it was released (e.g. adding
+    # a 6 months old video to a playlist: we expect that to be in the feed
+    # even if there are newer videos (by release data))
+    published_date = datetime.now()
+    published_date_formated = published_date.strftime('%a, %d %b %Y %H:%M:%S GMT')
 
     pubDate = et.SubElement(item, 'pubDate')
     pubDate.text = published_date_formated
