@@ -4,3 +4,7 @@ verify_ssl = true
 
 [packages]
 youtube_dl = "*"
+protobuf = "*"
+ipdb = "*"
+ipython = "*"
+pytest = "*"
