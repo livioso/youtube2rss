@@ -1,0 +1,26 @@
+{
+    "_meta": {
+        "hash": {
+            "sha256": "488ef70f09592ddeb958dc887f9d201ed62b8059a052ac87e3996da41eff9854"
+        },
+        "requires": {},
+        "sources": [
+            {
+                "url": "https://pypi.python.org/simple",
+                "verify_ssl": true
+            }
+        ]
+    },
+    "default": {
+        "django": {
+            "version": "==2.0.2"
+        },
+        "pytz": {
+            "version": "==2018.3"
+        },
+        "youtube-dl": {
+            "version": "==2018.3.3"
+        }
+    },
+    "develop": {}
+}
